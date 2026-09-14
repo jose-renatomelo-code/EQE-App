@@ -45,6 +45,10 @@ def parse_data(uploaded_file):
     col_eqe = [c for c in df.columns if "EQE" in c][0]
     col_sr = [c for c in df.columns if "SR" in c][0]
 
+    wavelength_nm = pd.to_numeric(df[col_wl], errors="coerce").values.astype(float)
+    eqe = pd.to_numeric(df[col_eqe], errors="coerce").values.astype(float)
+    sr = pd.to_numeric(df[col_sr], errors="coerce").values.astype(float)
+
     valid = np.isfinite(eqe) & np.isfinite(sr) & np.isfinite(wavelength_nm)
     eqe = eqe[valid]
     sr = sr[valid]
