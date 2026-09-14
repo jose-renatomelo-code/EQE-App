@@ -65,9 +65,9 @@ def parse_data(uploaded_file):
         st.stop()
 
 
-    col_wl = [c for c in df.columns if "Wavelength" in c][0]
-    col_eqe = [c for c in df.columns if "EQE" in c][0]
-    col_sr = [c for c in df.columns if "SR" in c][0]
+    col_wl = [c for c in df.columns if "Wavelength(nm)" in c][0]
+    col_eqe = [c for c in df.columns if "EQE(%)" in c][0]
+    col_sr = [c for c in df.columns if "SR(A/W)" in c][0]
 
     wavelength_nm = pd.to_numeric(df[col_wl], errors="coerce").values.astype(float)
     eqe = pd.to_numeric(df[col_eqe], errors="coerce").values.astype(float)
