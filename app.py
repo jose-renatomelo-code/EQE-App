@@ -29,16 +29,20 @@ def parse_data(uploaded_file):
     filename = uploaded_file.name
     content = uploaded_file.getvalue().decode("utf-8", errors="ignore")
     lines = content.splitlines()
-    rows_to_skip = 0
-    for l in lines:
-        rows_to_skip += 1
+
+    start_idx = None
+    for i, l in enumerate(lines):
         if l.strip() == "START DATA":
+            start_idx = i + 1
             break
 
+    data_lines = lines[start_idx:] if start_idx is not None else lines
+    data_block = "\n".join(data_lines)
+
     try:
-        df = pd.read_table(io.StringIO(content), skiprows=rows_to_skip, engine="python", sep=None)
+        df = pd.read_table(io.StringIO(data_block), engine="python", sep=None)
     except Exception:
-        df = pd.read_table(io.StringIO(content), skiprows=rows_to_skip, sep="\t")
+        df = pd.read_table(io.StringIO(data_block), sep="\t")
 
     col_wl = [c for c in df.columns if "Wavelength" in c][0]
     col_eqe = [c for c in df.columns if "EQE" in c][0]
