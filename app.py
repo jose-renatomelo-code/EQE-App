@@ -105,8 +105,7 @@ with st.sidebar:
         st.session_state["uploader_key"] += 1
 
     new_files = st.file_uploader(
-        "Upload .txt files",
-        type=["txt"],
+        "Upload .qsdat files",
         accept_multiple_files=True,
         key=f"uploader_{st.session_state['uploader_key']}"
     )
