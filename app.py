@@ -77,7 +77,7 @@ def parse_data(uploaded_file):
     col_eqe = find_col(["eqe"], df.columns)
     col_sr  = find_col(["sr(", "sr "], df.columns)
 
-    missing = [name for name, col in [("Wavelength", col_wl), ("EQE", col_eqe), ("SR", col_sr)] if col is None]
+    missing = [name for name, col in [("Wavelength(nm)", col_wl), ("EQE(%)", col_eqe), ("SR(A/W)", col_sr)] if col is None]
     if missing:
         st.error(f"**{filename}**: could not find columns {missing}.\n\nColumns found: `{list(df.columns)}`")
         st.stop()
