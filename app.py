@@ -65,9 +65,22 @@ def parse_data(uploaded_file):
         st.stop()
 
 
-    col_wl = [c for c in df.columns if "Wavelength(nm)" in c][0]
-    col_eqe = [c for c in df.columns if "EQE(%)" in c][0]
-    col_sr = [c for c in df.columns if "SR(A/W)" in c][0]
+    def find_col(candidates, cols):
+        cols_lower = {c.lower(): c for c in cols}
+        for pattern in candidates:
+            matches = [orig for low, orig in cols_lower.items() if pattern in low]
+            if matches:
+                return matches[0]
+        return None
+
+    col_wl  = find_col(["wavelength", "wl(", "wl "], df.columns)
+    col_eqe = find_col(["eqe"], df.columns)
+    col_sr  = find_col(["sr(", "sr "], df.columns)
+
+    missing = [name for name, col in [("Wavelength", col_wl), ("EQE", col_eqe), ("SR", col_sr)] if col is None]
+    if missing:
+        st.error(f"**{filename}**: could not find columns {missing}.\n\nColumns found: `{list(df.columns)}`")
+        st.stop()
 
     wavelength_nm = pd.to_numeric(df[col_wl], errors="coerce").values.astype(float)
     eqe = pd.to_numeric(df[col_eqe], errors="coerce").values.astype(float)
