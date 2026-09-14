@@ -30,119 +30,20 @@ def parse_data(uploaded_file):
     content = uploaded_file.getvalue().decode("utf-8", errors="ignore")
     lines = content.splitlines()
 
-    start_idx = None
-    for i, l in enumerate(lines):
-        tokens = l.strip().upper().split()
-        if len(tokens) >= 2 and tokens[0] in ("START", "END") and (
-            tokens[1].startswith("DATA") or tokens[1].startswith("HEADER")
-        ):
-            start_idx = i + 1
+    rows_to_skip = 0
+    for l in lines:
+        rows_to_skip += 1
+        if "START" in l.upper() and "DATA" in l.upper():
+            break
 
-    # skip any additional START/END metadata lines after the last marker
-    if start_idx is not None:
-        while start_idx < len(lines):
-            t = lines[start_idx].strip().split()
-            if t and t[0].upper() in ("START", "END"):
-                start_idx += 1
-            else:
-                break
+    try:
+        df = pd.read_table(io.StringIO(content), skiprows=rows_to_skip, engine="python", sep=None)
+    except Exception:
+        df = pd.read_table(io.StringIO(content), skiprows=rows_to_skip, sep="\t")
 
-    if start_idx is None:
-        for i, l in enumerate(lines):
-            if any(kw in l.lower() for kw in ("wavelength", "eqe", "sr(a")):
-                start_idx = i
-                break
-
-    data_lines = lines[start_idx:] if start_idx is not None else lines
-    clean_lines = [l for l in data_lines if l.strip() and not l.strip().startswith("#")]
-    data_block = "\n".join(clean_lines)
-
-    df = None
-    strategies = [
-        dict(sep=None, engine="python"),
-        dict(sep=r"\s+", engine="python"),
-        dict(sep="\t", engine="c"),
-        dict(sep=",", engine="c"),
-        dict(sep=";", engine="c"),
-    ]
-    for kwargs in strategies:
-        try:
-            df = pd.read_table(
-                io.StringIO(data_block),
-                on_bad_lines="skip",
-                **kwargs,
-            )
-            if df.shape[1] >= 3:
-                break
-        except Exception:
-            df = None
-
-    if df is None or df.shape[1] < 3:
-        st.error(f"Could not parse file: {filename}. Check the file format.")
-        st.stop()
-
-    def find_col(candidates, cols):
-        cols_lower = {c.lower(): c for c in cols}
-        for pattern in candidates:
-            matches = [orig for low, orig in cols_lower.items() if pattern in low]
-            if matches:
-                return matches[0]
-        return None
-
-    col_wl  = find_col(["wavelength", "wl(", "wl "], df.columns)
-    col_eqe = find_col(["eqe"], df.columns)
-    col_sr  = find_col(["sr(", "sr "], df.columns)
-
-    # positional fallback: re-parse without header, detect columns by value range
-    if col_wl is None or col_eqe is None or col_sr is None:
-        for kwargs in strategies:
-            try:
-                df2 = pd.read_table(
-                    io.StringIO(data_block),
-                    header=None,
-                    on_bad_lines="skip",
-                    **kwargs,
-                )
-                if df2.shape[1] < 3:
-                    continue
-                numeric_df = df2.apply(pd.to_numeric, errors="coerce")
-                # wavelength column: values mostly in 200–2500 nm
-                wl_candidates = [
-                    c for c in numeric_df.columns
-                    if numeric_df[c].dropna().between(200, 2500).mean() > 0.8
-                ]
-                # EQE column: values mostly in 0–100
-                eqe_candidates = [
-                    c for c in numeric_df.columns
-                    if numeric_df[c].dropna().between(0, 100).mean() > 0.8
-                    and c not in wl_candidates
-                ]
-                # SR column: values mostly in 0–2 A/W
-                sr_candidates = [
-                    c for c in numeric_df.columns
-                    if numeric_df[c].dropna().between(0, 2).mean() > 0.8
-                    and c not in wl_candidates and c not in eqe_candidates
-                ]
-                if wl_candidates and eqe_candidates and sr_candidates:
-                    df = numeric_df.rename(columns={
-                        wl_candidates[0]:  "Wavelength(nm)",
-                        eqe_candidates[0]: "EQE(%)",
-                        sr_candidates[0]:  "SR(A/W)",
-                    })
-                    col_wl, col_eqe, col_sr = "Wavelength(nm)", "EQE(%)", "SR(A/W)"
-                    break
-            except Exception:
-                continue
-
-    missing = [name for name, col in [("Wavelength(nm)", col_wl), ("EQE(%)", col_eqe), ("SR(A/W)", col_sr)] if col is None]
-    if missing:
-        st.error(f"**{filename}**: could not find columns {missing}.\n\nColumns found: `{list(df.columns)}`")
-        st.stop()
-
-
-    wavelength_nm = pd.to_numeric(df[col_wl], errors="coerce").values.astype(float)
-    eqe = pd.to_numeric(df[col_eqe], errors="coerce").values.astype(float)
-    sr = pd.to_numeric(df[col_sr], errors="coerce").values.astype(float)
+    col_wl = [c for c in df.columns if "Wavelength" in c][0]
+    col_eqe = [c for c in df.columns if "EQE" in c][0]
+    col_sr = [c for c in df.columns if "SR" in c][0]
 
     valid = np.isfinite(eqe) & np.isfinite(sr) & np.isfinite(wavelength_nm)
     eqe = eqe[valid]
