@@ -30,16 +30,47 @@ def parse_data(uploaded_file):
     content = uploaded_file.getvalue().decode("utf-8", errors="ignore")
     lines = content.splitlines()
 
-    rows_to_skip = 0
-    for l in lines:
-        rows_to_skip += 1
-        if "START" in l.upper() and "DATA" in l.upper():
-            break
+    start_idx = None
+    end_idx = None
+
+    for i, line in enumerate(lines):
+        tokens = line.strip().upper().split()
+
+        if tokens and tokens[0] == "START" and len(tokens) >= 2:
+            if tokens[1].startswith("DATA"):
+                start_idx = i + 1
+
+        if tokens and tokens[0] == "END" and len(tokens) >= 2:
+            if tokens[1].startswith("DATA"):
+                end_idx = i
+
+    if start_idx is None:
+        st.error(f"Could not find START DATA in {filename}.")
+        st.stop()
+
+    # If END DATA was found, only use the data block
+    if end_idx is not None:
+        data_lines = lines[start_idx:end_idx]
+    else:
+        data_lines = lines[start_idx:]
+
+    # Remove empty/comment lines
+    data_lines = [
+        line for line in data_lines
+        if line.strip() and not line.strip().startswith("#")
+    ]
+
+    data_block = "\n".join(data_lines)
 
     try:
-        df = pd.read_table(io.StringIO(content), skiprows=rows_to_skip, engine="python", sep=None)
-    except Exception:
-        df = pd.read_table(io.StringIO(content), skiprows=rows_to_skip, sep="\t")
+        df = pd.read_csv(
+            io.StringIO(data_block),
+            sep="\t",
+            engine="python"
+        )
+    except Exception as e:
+        st.error(f"Could not parse file: {filename}\n\n{e}")
+        st.stop()
 
     col_wl = [c for c in df.columns if "Wavelength" in c][0]
     col_eqe = [c for c in df.columns if "EQE" in c][0]
