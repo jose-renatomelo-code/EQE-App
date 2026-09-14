@@ -68,6 +68,7 @@ def parse_data(uploaded_file):
             sep="\t",
             engine="python"
         )
+
     except Exception as e:
         st.error(f"Could not parse file: {filename}\n\n{e}")
         st.stop()
