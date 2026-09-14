@@ -37,12 +37,33 @@ def parse_data(uploaded_file):
             break
 
     data_lines = lines[start_idx:] if start_idx is not None else lines
-    data_block = "\n".join(data_lines)
+    clean_lines = [l for l in data_lines if l.strip() and not l.strip().startswith("#")]
+    data_block = "\n".join(clean_lines)
 
-    try:
-        df = pd.read_table(io.StringIO(data_block), engine="python", sep=None)
-    except Exception:
-        df = pd.read_table(io.StringIO(data_block), sep="\t")
+    df = None
+    strategies = [
+        dict(sep=None, engine="python"),
+        dict(sep=r"\s+", engine="python"),
+        dict(sep="\t", engine="c"),
+        dict(sep=",", engine="c"),
+        dict(sep=";", engine="c"),
+    ]
+    for kwargs in strategies:
+        try:
+            df = pd.read_table(
+                io.StringIO(data_block),
+                on_bad_lines="skip",
+                **kwargs,
+            )
+            if df.shape[1] >= 3:
+                break
+        except Exception:
+            df = None
+
+    if df is None or df.shape[1] < 3:
+        st.error(f"Could not parse file: {filename}. Check the file format.")
+        st.stop()
+
 
     col_wl = [c for c in df.columns if "Wavelength" in c][0]
     col_eqe = [c for c in df.columns if "EQE" in c][0]
