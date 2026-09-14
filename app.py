@@ -182,7 +182,7 @@ with tab1:
         )
 
         fig_eqe.add_trace(
-            go.Scatter(x=d["Wavelength(nm)"], y=d["Cumulative_Jsc(mA/cm²)"], mode='lines', name=f"{name} Jsc", line=dict(color=color, dash="dot")),
+            go.Scatter(x=d["Wavelength(nm)"], y=d["Cumulative_Jsc(mA/cm²)"], mode='lines', line=dict(color=color, dash="dot")),
             secondary_y=True
         )
 
@@ -206,7 +206,7 @@ with tab1:
     m1.metric("EQE", safe_fmt(best_cell["EQE_MAX"], "{:.2f}%"))
     m2.metric("Jsc", safe_fmt(best_cell["Jsc(mA/cm2)"], "{:.3f} mA/cm²"))
     m3.metric("Max_wavelength", safe_fmt(best_cell["WL_MAX"], "{:.2f} nm"))
-    m4.metric("Max_SR", safe_fmt(best_cell["SR_MAX"], "{:.1f}A/W"))
+    m4.metric("Max_SR", safe_fmt(best_cell["SR_MAX"], "{:.1f} A/W"))
 
 with tab2:
     st.subheader("Data")
