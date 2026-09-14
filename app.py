@@ -32,9 +32,19 @@ def parse_data(uploaded_file):
 
     start_idx = None
     for i, l in enumerate(lines):
-        if l.strip() == "START DATA":
+        tokens = l.strip().upper().split()
+        if len(tokens) >= 2 and tokens[0] == "START" and tokens[1].startswith("DATA"):
             start_idx = i + 1
             break
+        if len(tokens) >= 2 and tokens[0] == "END" and tokens[1].startswith("HEADER"):
+            start_idx = i + 1
+            break
+
+    if start_idx is None:
+        for i, l in enumerate(lines):
+            if any(kw in l.lower() for kw in ("wavelength", "eqe", "sr(a")):
+                start_idx = i
+                break
 
     data_lines = lines[start_idx:] if start_idx is not None else lines
     clean_lines = [l for l in data_lines if l.strip() and not l.strip().startswith("#")]
