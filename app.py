@@ -182,7 +182,7 @@ with tab1:
         )
 
         fig_eqe.add_trace(
-            go.Scatter(x=d["Wavelength(nm)"], y=d["Cumulative_Jsc(mA/cm²)"], mode='lines', line=dict(color=color, dash="dot")),
+            go.Scatter(x=d["Wavelength(nm)"], y=d["Cumulative_Jsc(mA/cm²)"], mode='lines', name="", line=dict(color=color, dash="dot")),
             secondary_y=True
         )
 
